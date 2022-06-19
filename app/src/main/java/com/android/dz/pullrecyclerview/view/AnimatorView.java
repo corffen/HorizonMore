@@ -1,6 +1,6 @@
 package com.android.dz.pullrecyclerview.view;
 
-import static com.android.dz.pullrecyclerview.view.DZStickyNavLayouts.S_VISIBLE_PERCENT;
+import static com.android.dz.pullrecyclerview.view.LookMoreLayout.S_VISIBLE_PERCENT;
 
 import android.content.Context;
 import android.graphics.Canvas;
@@ -67,32 +67,25 @@ public class AnimatorView extends RelativeLayout {
         mMove += width;
         if (mMove < 0) {
             mMove = 0;
-        } else if (mMove > DZStickyNavLayouts.maxWidth) {
-            mMove = DZStickyNavLayouts.maxWidth;
+        } else if (mMove > LookMoreLayout.maxWidth) {
+            mMove = LookMoreLayout.maxWidth;
         }
 //        mView.getLayoutParams().width = mMove;
         mView.getLayoutParams().height = LinearLayout.LayoutParams.MATCH_PARENT;
 
-        if (mMove > DZStickyNavLayouts.maxWidth * S_VISIBLE_PERCENT) {
+        if (mMove > LookMoreLayout.maxWidth * S_VISIBLE_PERCENT) {
             mTextView.setText("释放查看");
             if (!isRunAnim) {
-                mIvArrow.animate().rotationY(180f)
+                mIvArrow.animate().rotation(180f)
                         .setDuration(100)
                         .withEndAction(() -> isRunAnim = false)
                         .start();
                 isRunAnim = true;
             }
         } else {
-//            if (mMove < DZStickyNavLayouts.maxWidth / 2) {
-//                mTextView.setVisibility(View.INVISIBLE);
-//                mIvArrow.setVisibility(View.INVISIBLE);
-//            } else {
-//                mTextView.setVisibility(View.VISIBLE);
-//                mIvArrow.setVisibility(View.VISIBLE);
-//            }
             mTextView.setText("查看更多");
             if (!isRunAnim) {
-                mIvArrow.animate().rotationY(0f)
+                mIvArrow.animate().rotation(0f)
                         .setDuration(100)
                         .withEndAction(() -> isRunAnim = false)
                         .start();

@@ -1,25 +1,21 @@
 package com.android.dz.pullrecyclerview;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.android.dz.pullrecyclerview.adapter.HomeAdapters;
-import com.android.dz.pullrecyclerview.view.DZStickyNavLayouts;
-import com.blankj.utilcode.util.ActivityUtils;
+import com.android.dz.pullrecyclerview.view.LookMoreLayout;
 import com.blankj.utilcode.util.ClickUtils;
+import com.blankj.utilcode.util.ToastUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Random;
 
 
 public class HomeActivitys extends AppCompatActivity {
@@ -38,9 +34,14 @@ public class HomeActivitys extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_homes);
 
-        DZStickyNavLayouts layout = (DZStickyNavLayouts) findViewById(R.id.head_home_layout);
+        LookMoreLayout layout = (LookMoreLayout) findViewById(R.id.head_home_layout);
 
-        layout.setOnStartActivity(() -> ActivityUtils.startActivity(MainActivity.class));
+        layout.setOnLookMoreListener(new LookMoreLayout.OnLookMoreListener() {
+            @Override
+            public void onStart() {
+                ToastUtils.showShort("刷新列表");
+            }
+        });
 
         RecyclerView mHeadRecyclerView = (RecyclerView) findViewById(R.id.head_home_recyclerview);
         LinearLayoutManager layoutManager2 = new LinearLayoutManager(this);
@@ -66,7 +67,7 @@ public class HomeActivitys extends AppCompatActivity {
         mBtnScale.postDelayed(mHideBtnTask, 5000L);
     }
 
-    private void updateRvList(DZStickyNavLayouts layout, RecyclerView mHeadRecyclerView) {
+    private void updateRvList(LookMoreLayout layout, RecyclerView mHeadRecyclerView) {
         final List<Integer> list = generator();
         HomeAdapters mHomeAdapter = new HomeAdapters(list);
         mHeadRecyclerView.setAdapter(mHomeAdapter);
@@ -75,7 +76,8 @@ public class HomeActivitys extends AppCompatActivity {
 
     public List<Integer> generator() {
         List<Integer> ans = new ArrayList<>();
-        int count = new Random().nextInt(6) + 1;
+//        int count = new Random().nextInt(6) + 1;
+        int count = 6;
         for (int i = 0; i < count; i++) {
             ans.add(i);
         }

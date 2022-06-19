@@ -2,6 +2,7 @@ package com.android.dz.pullrecyclerview.view;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,13 +17,14 @@ import androidx.core.view.NestedScrollingParentHelper;
 import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+
 /**
  * 给RecyclerView提供伸缩效果
  *
  * @author Wudongze
  */
-public class DZStickyNavLayouts extends LinearLayout implements NestedScrollingParent {
-
+public class LookMoreLayout extends LinearLayout implements NestedScrollingParent {
+    private static final String TAG = "DZStickyNavLayouts";
     private NestedScrollingParentHelper mParentHelper;
     private View mHeaderView;
     private AnimatorView mFooterView;
@@ -32,15 +34,18 @@ public class DZStickyNavLayouts extends LinearLayout implements NestedScrollingP
     public static int maxWidth = 0;
     private static final int DRAG = 1;
     private boolean needShowMore = true;
-    public static final float S_VISIBLE_PERCENT = 4 / 5f;
+    public static final float S_VISIBLE_PERCENT = 0.8f;
 
-    public interface OnStartActivityListener {
+    public interface OnLookMoreListener {
+        /**
+         * 执行查看更多的回调方法
+         */
         void onStart();
     }
 
-    private OnStartActivityListener mLinster;
+    private OnLookMoreListener mLinster;
 
-    public void setOnStartActivity(OnStartActivityListener l) {
+    public void setOnLookMoreListener(OnLookMoreListener l) {
         mLinster = l;
     }
 
@@ -48,7 +53,7 @@ public class DZStickyNavLayouts extends LinearLayout implements NestedScrollingP
         this.needShowMore = needShowMore;
     }
 
-    public DZStickyNavLayouts(Context context, AttributeSet attrs) {
+    public LookMoreLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
         mHeaderView = new View(context);
         mHeaderView.setBackgroundColor(0xffFFFFFF);
@@ -95,19 +100,23 @@ public class DZStickyNavLayouts extends LinearLayout implements NestedScrollingP
      */
     @Override
     public void onNestedScrollAccepted(View child, View target, int axes) {
+        Log.i(TAG, "onNestedScrollAccepted: child=" + child + ",target=" + target + ",axes=" + axes);
         mParentHelper.onNestedScrollAccepted(child, target, axes);
     }
 
     /**
+     * down事件,内部开始滚动之前,外部View准备开始滚动
      * 返回true代表处理本次事件
      * 在执行动画时间里不能处理本次事件
      */
     @Override
     public boolean onStartNestedScroll(View child, View target, int nestedScrollAxes) {
+        Log.i(TAG, "onStartNestedScroll: ");
         return target instanceof RecyclerView && !isRunAnim && needShowMore;
     }
 
     /**
+     * up事件,当手指抬起时,内部滚动事件,通知外部控件停止滚动
      * 复位初始位置
      * scrollTo 移动到指定坐标
      * scrollBy 在原有坐标上面移动
@@ -115,12 +124,13 @@ public class DZStickyNavLayouts extends LinearLayout implements NestedScrollingP
     @Override
     public void onStopNestedScroll(View target) {
         mParentHelper.onStopNestedScroll(target);
+        Log.i(TAG, "onStopNestedScroll: getScrollX()=" + getScrollX());
         // 如果不在RecyclerView滑动范围内
         if (maxWidth != getScrollX()) {
             startAnimation(new ProgressAnimation());
         }
-
-        if (getScrollX() > maxWidth + maxWidth *S_VISIBLE_PERCENT && mLinster != null) {
+        //当达到指定的区域,放松手指时,触发回调
+        if (getScrollX() > maxWidth + maxWidth * S_VISIBLE_PERCENT && mLinster != null) {
             mLinster.onStart();
         }
     }
@@ -134,9 +144,17 @@ public class DZStickyNavLayouts extends LinearLayout implements NestedScrollingP
             isRunAnim = true;
         }
 
+        /**
+         * 手指松开时,需要将外部View还原.
+         * 距离是getScrollX()是已经滑动的距离
+         *
+         * @param interpolatedTime 0-1 将时间转换为进度的参数
+         * @param t                转换算法
+         */
         @Override
         protected void applyTransformation(float interpolatedTime, Transformation t) {
             scrollBy((int) ((maxWidth - getScrollX()) * interpolatedTime), 0);
+            //动画执行完毕时,将动画标志置为false,同时调用一个底部View的释放操作
             if (interpolatedTime == 1) {
                 isRunAnim = false;
                 mFooterView.setRelease();
@@ -151,26 +169,38 @@ public class DZStickyNavLayouts extends LinearLayout implements NestedScrollingP
         }
     }
 
+    /**
+     * 内部View在滑动时,通知外部View是否跟随处理这次滑动
+     */
     @Override
     public void onNestedScroll(View target, int dxConsumed, int dyConsumed, int dxUnconsumed, int dyUnconsumed) {
 
     }
 
     /**
+     * 内部View在滑动之前通知外部View是否处理这次滑动的距离,外部View处理之后,才交给内部View处理
+     *
      * @param dx       水平滑动距离
      * @param dy       垂直滑动距离
      * @param consumed 父类消耗掉的距离
      */
     @Override
     public void onNestedPreScroll(@NonNull View target, int dx, int dy, @NonNull int[] consumed) {
+        Log.i(TAG, "onNestedPreScroll:maxWidth= " + maxWidth + ",dx=" + dx + ",dy=" + dy + ",consumed=" + consumed);
         getParent().requestDisallowInterceptTouchEvent(true);
+        Log.i(TAG, "onNestedPreScroll: getScrollX()" + getScrollX() + ",can lh =" + target.canScrollHorizontally(-1));
+        Log.i(TAG, "onNestedPreScroll: getScrollX()" + getScrollX() + ",can rh =" + target.canScrollHorizontally(1));
         // dx>0 往左滑动 dx<0往右滑动
-        //System.out.println("dx:" + dx + "=======getScrollX:" + getScrollX() + "==========canScrollHorizontally:" + !ViewCompat.canScrollHorizontally(target, -1));
-        boolean hiddenLeft = dx > 0 && getScrollX() < maxWidth && !ViewCompat.canScrollHorizontally(target, -1);
-        boolean showLeft = dx < 0 && !ViewCompat.canScrollHorizontally(target, -1);
-        boolean hiddenRight = dx < 0 && getScrollX() > maxWidth && !ViewCompat.canScrollHorizontally(target, 1);
-        boolean showRight = dx > 0 && !ViewCompat.canScrollHorizontally(target, 1);
-        if (hiddenLeft || showLeft || hiddenRight || showRight) {
+        boolean hiddenLeft = dx > 0 && getScrollX() < maxWidth && !target.canScrollHorizontally(-1);
+        //当手指往右滑动时,并且内部的RV不能往左滑动时,就显示左边的View
+        boolean showLeft = dx < 0 && !target.canScrollHorizontally(-1);
+        boolean hiddenRight = dx < 0 && getScrollX() > maxWidth && !target.canScrollHorizontally(1);
+        boolean showRight = dx > 0 && !target.canScrollHorizontally(1);
+        if (showLeft) {
+            scrollTo(maxWidth, 0);
+            return;
+        }
+        if (hiddenLeft || hiddenRight || showRight) {
             scrollBy(dx / DRAG, 0);
             consumed[0] = dx;
         }
@@ -190,6 +220,7 @@ public class DZStickyNavLayouts extends LinearLayout implements NestedScrollingP
 
     @Override
     public boolean onNestedFling(View target, float velocityX, float velocityY, boolean consumed) {
+        Log.i(TAG, "onNestedFling: ");
         return false;
     }
 
@@ -200,6 +231,7 @@ public class DZStickyNavLayouts extends LinearLayout implements NestedScrollingP
      */
     @Override
     public boolean onNestedPreFling(View target, float velocityX, float velocityY) {
+        Log.i(TAG, "onNestedPreFling: ");
         // 当RecyclerView在界面之内交给它自己惯性滑动
         return getScrollX() != maxWidth;
     }
